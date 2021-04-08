@@ -28,7 +28,7 @@ public @interface EnableRestClient {
      * springContext 里的rest请求模板
      * @return rest
      */
-    String value() default "restTemplate";
+    String value() default "";
 
     /**
      * 代理方式 <br>
