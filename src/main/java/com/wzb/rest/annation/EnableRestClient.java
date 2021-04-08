@@ -2,6 +2,7 @@ package com.wzb.rest.annation;
 
 
 import com.wzb.rest.config.MessageConvertConfigure;
+import com.wzb.rest.demo.DemoConfigure;
 import com.wzb.rest.registrar.RestClientScanRegistrar;
 import com.wzb.rest.proxy.RestClientProxy;
 import org.springframework.context.annotation.Import;
@@ -38,8 +39,8 @@ public @interface EnableRestClient {
     int mode() default RestClientProxy.MODE_PROXY;
 
     /**
-     * 配置类
-     *
+     * 配置类<br>
+     * demo {@link DemoConfigure}
      * @return {@link Class<?>[]}
      */
     Class<?>[] configureClass() default {};
