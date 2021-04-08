@@ -13,6 +13,6 @@
  * 在启动类加上@EnbaleRestClient
  * 调用远程api直接定义接口，在接口上添加注解@RestClient(配置远程服务)
    > 声明接口方法，加上org.springframework.web.bind.annotation包下的注解
-   > 在业务类中定义成员变量，加上注解@Resoure或者@Autowired即可像本地服务调用一样使用
+   > 在业务类中定义成员变量，加上注解@Resource或者@Autowired即可像本地服务调用一样使用
  
 ***
