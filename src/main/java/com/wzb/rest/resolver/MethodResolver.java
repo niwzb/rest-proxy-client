@@ -12,7 +12,7 @@ import java.util.stream.Stream;
  */
 public final class MethodResolver {
 
-    private static MethodResolver resolver = new MethodResolver();
+    private static final MethodResolver resolver = new MethodResolver();
 
     private ClientCacheFactory factory;
 
@@ -48,24 +48,24 @@ public final class MethodResolver {
      */
     public void resolverMethod(Class<?> restClientInterface, String prefixUrl) {
         Method[] methods = restClientInterface.getMethods();
-        Stream.of(methods).forEach(method -> {
+        for(Method method : methods) {
             //方法key
             String methodKey = factory.generateMethodKey(method);
             //解析URL
-            urlResolver.resolverUrl(factory, methodKey, method, prefixUrl);
+            MethodUrl methodUrl = urlResolver.resolverUrl(factory, methodKey, method, prefixUrl);
+            //请求连接包含静态参数
+            factory.putIfAbsent(methodKey, methodUrl.getUrl().contains("?"));
             //方法参数注解，1维是参数，2维是注解
             Annotation[][] annotations = method.getParameterAnnotations();
             //解析方法参数@PathVariable、@RequestParam、@RequestHeader、@RequestBody、@RestRequestBody、@RestRequestFile注解参数
             parameterResolver.resolverParameter(factory, methodKey, annotations, method.getParameters());
             //解析动态参数URL
-            MethodUrl methodUrl = factory.getMethodUrl(methodKey);
             dynamicParameterResolver.resolverDynamicParameter(factory, methodKey, methodUrl.getUrl());
             //解析返回类型
             responseTypeResolver.resolverResponseType(factory, methodKey, method.getGenericReturnType());
             //接口方法参数分类
             parameterResolver.resolverParameterType(factory, methodKey);
-        });
-
+        }
     }
 
     /**

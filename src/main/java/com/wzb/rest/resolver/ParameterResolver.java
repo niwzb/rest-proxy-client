@@ -72,19 +72,14 @@ public final class ParameterResolver {
                     factory.putIfAbsent(methodKey, requestBody);
                     continue;
                 }
-                final int parameterIndex = i;
-                final Class<?> parameterType = parameter.getType();
-                @SuppressWarnings("unchecked")
-                Optional<ParameterSort> optional = Stream.of(paramAnn).map(annotation ->
-                        link.resolverAnnotation(annotation, parameterIndex, parameterName, parameterType))
-                        .filter(Objects::nonNull).findFirst();
-                if (optional.isPresent()) {
-                    ParameterSort parameterSort = optional.get();
-                    factory.putIfAbsent(methodKey, parameterSort);
-                    factory.putIfAbsent(methodKey, parameterSort.getPath());
-                    logger.debug("found annotation's @{} at method parameter index {}",
-                            parameterSort.getAnnotationName(),
-                            i);
+                for (Annotation annotation : paramAnn) {
+                    ParameterSort sort = link.resolverAnnotation(annotation, i, parameterName, parameter.getType());
+                    if (null != sort) {
+                        factory.putIfAbsent(methodKey, sort);
+                        factory.putIfAbsent(methodKey, sort.getPath());
+                        logger.debug("found annotation's @{} at method parameter index {}", sort.getAnnotationName(), i);
+                        break;
+                    }
                 }
             }
         }

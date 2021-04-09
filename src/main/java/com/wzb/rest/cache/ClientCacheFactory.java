@@ -35,6 +35,8 @@ public final class ClientCacheFactory {
 
     private static final Map<String, List<Class<?>>> responseClassMap = new ConcurrentHashMap<>();
 
+    private static final Map<String, Boolean> urlContainsStaticParameterMap = new ConcurrentHashMap<>();
+
     private static final Map<String, Type> returnTypeMap = new ConcurrentHashMap<>();
 
     private static final Map<String, List<DynamicParameter>> dynamicParameterMap = new ConcurrentHashMap<>();
@@ -320,17 +322,15 @@ public final class ClientCacheFactory {
      * 执行日志
      *
      * @param log 日志
-     * @return {@link Object}
      */
-    public Object invokeLogBackMethod(RestClientLog log) {
+    public void invokeLogBackMethod(RestClientLog log) {
         if (null != logbackMethod) {
             try {
-                return logbackMethod.getMethod().invoke(logbackMethod.getInstance(), log);
+                logbackMethod.getMethod().invoke(logbackMethod.getInstance(), log);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 logger.warn("执行日志处理异常", e);
             }
         }
-        return null;
     }
 
     /**
@@ -560,6 +560,24 @@ public final class ClientCacheFactory {
      */
     public ParameterAnnotationLink getParameterAnnotationLink() {
         return this.parameterAnnotationLink;
+    }
+
+    /**
+     * 设置方法含有静态参数标识
+     * @param methodKey 方法key
+     * @param urlContainStaticParameter 标识
+     */
+    public void putIfAbsent(String methodKey, boolean urlContainStaticParameter) {
+        urlContainsStaticParameterMap.putIfAbsent(methodKey, urlContainStaticParameter);
+    }
+
+    /**
+     * 方法含有静态参数标识
+     * @param methodKey 方法key
+     * @return 结果
+     */
+    public boolean methodUrlContainStaticParameter(String methodKey) {
+        return urlContainsStaticParameterMap.get(methodKey);
     }
 
     /**

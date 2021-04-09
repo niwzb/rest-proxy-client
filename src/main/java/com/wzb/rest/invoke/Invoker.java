@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 /**
@@ -43,9 +45,11 @@ import java.util.stream.Stream;
  */
 public final class Invoker {
 
-    private static Logger logger = LoggerFactory.getLogger(Invoker.class);
+    private static final Logger logger = LoggerFactory.getLogger(Invoker.class);
 
-    private static ClientCacheFactory factory = ClientCacheFactory.getInstance();
+    private static final ClientCacheFactory factory = ClientCacheFactory.getInstance();
+
+    private static final ExecutorService executor = Executors.newWorkStealingPool();
 
     private static final String GETTER = "get";
 
@@ -94,20 +98,7 @@ public final class Invoker {
      * @param args      方法参
      */
     public static void invoke(String methodKey, List<Object> args) {
-        long start = System.currentTimeMillis();
-        //解析链接
-        HttpMethod httpMethod = factory.getMethodUrl(methodKey).getHttpMethod();
-        //识别请求类型
-        if (null != httpMethod) {
-            //生成URL
-            String callUrl = generateURL(methodKey, args);
-            //远程调用
-            call(methodKey, callUrl, httpMethod, args, factory.getRestTemplateClient());
-            if (logger.isDebugEnabled()) {
-                logger.debug(">>>>>>>>>>>>>>>>>>rest-client-proxy invoke cost:{}(ms)",
-                        System.currentTimeMillis() - start);
-            }
-        }
+        invoke(methodKey, args, null);
     }
 
     /**
@@ -133,7 +124,7 @@ public final class Invoker {
         //param参数拼接
         StringBuilder parameter = new StringBuilder();
         //参数拼接到url里
-        parameterSortList.forEach(sort -> {
+        for (ParameterSort sort : parameterSortList) {
             Object parameterValue = args.get(sort.getIndex());
             if (null != parameterValue) {
                 if (parameter.length() > 0) {
@@ -141,7 +132,7 @@ public final class Invoker {
                 }
                 parameter.append(sort.getName()).append("=").append(convert(parameterValue));
             }
-        });
+        }
         if (factory.hasPath(methodKey)) {
             if (parameter.length() > 0) {
                 parameter.append("&");
@@ -151,10 +142,10 @@ public final class Invoker {
         if (parameter.length() == 0) {
             return newUrl;
         }
-        if (!newUrl.contains("?")) {
+        if (!factory.methodUrlContainStaticParameter(methodKey)) {
             return newUrl.concat("?").concat(parameter.toString());
         }
-        if (newUrl.endsWith("&")) {
+        if (newUrl.charAt(newUrl.length() - 1) == '&') {
             return newUrl.concat(parameter.toString());
         }
         return newUrl.concat("&").concat(parameter.toString());
@@ -181,8 +172,11 @@ public final class Invoker {
     private static String parameterReplacePlaceholder(List<DynamicParameter> dynamicParameterList,
                                                       List<ParameterSort> parameterSortList,
                                                       List<Object> args) {
+        if (dynamicParameterList.isEmpty()) {
+            return "";
+        }
         StringBuilder url = new StringBuilder();
-        dynamicParameterList.forEach(dynamicParameter -> {
+        for (DynamicParameter dynamicParameter : dynamicParameterList) {
             url.append(dynamicParameter.getSubURL());
             String dynamicParameterName = dynamicParameter.getName();
             if (null != dynamicParameterName) {
@@ -190,7 +184,7 @@ public final class Invoker {
                         parameterSortList, args);
                 url.append(dynamicParameterValue);
             }
-        });
+        }
         return url.toString();
     }
 
@@ -208,15 +202,15 @@ public final class Invoker {
         if (null == parameterSortList || parameterSortList.isEmpty()) {
             return "";
         }
+        Object value = null;
         //参数名相同
-        Optional<ParameterSort> optional = parameterSortList.stream()
-                .filter(sort -> Objects.equals(sort.getName(), dynamicParameterName)).findFirst();
-        if (optional.isPresent()) {
-            ParameterSort sort = optional.get();
-            Object value = args.get(sort.getIndex());
-            return convert(value, "");
+        for (ParameterSort sort : parameterSortList) {
+            if (Objects.equals(sort.getName(), dynamicParameterName)) {
+                value = args.get(sort.getIndex());
+                break;
+            }
         }
-        return "";
+        return convert(value, "");
     }
 
     /**
@@ -309,7 +303,7 @@ public final class Invoker {
         HttpEntity<?> httpEntity = null;
         Class<?> responseClass = factory.getResponseClass(methodKey).get(0);
         try {
-            httpEntity = buildHttpEntity(factory, methodKey, args);
+            httpEntity = buildHttpEntity(methodKey, args);
             long ii = System.currentTimeMillis();
             responseEntity = restTemplate.exchange(new URI(callUrl), httpMethod, httpEntity,
                     buildParameterizedTypeReference(methodKey));
@@ -325,18 +319,22 @@ public final class Invoker {
                 }
             }
             if (factory.hasLogBackMethod()) {
-                factory.invokeLogBackMethod(RestClientLog.builder()
+                //异步打印日志
+                final RestClientLog logParameter = RestClientLog.builder()
                         .url(callUrl)
                         .method(httpMethod)
                         .parameter(httpEntity)
                         .response(response)
                         .speedTime(System.currentTimeMillis() - ii)
                         .multipart(MediaType.MULTIPART_FORM_DATA.equals(httpEntity.getHeaders().getContentType()))
-                        .build());
+                        .build();
+                Runnable logTask = () -> factory.invokeLogBackMethod(logParameter);
+                executor.submit(logTask);
             }
         } catch (Exception e) {
             if (factory.hasLogBackMethod()) {
-                factory.invokeLogBackMethod(RestClientLog.builder()
+                //异步打印日志
+                final RestClientLog logParameter = RestClientLog.builder()
                         .url(callUrl)
                         .method(httpMethod)
                         .parameter(httpEntity)
@@ -344,7 +342,9 @@ public final class Invoker {
                         .throwable(e)
                         .multipart(null != httpEntity && MediaType.MULTIPART_FORM_DATA
                                 .equals(httpEntity.getHeaders().getContentType()))
-                        .build());
+                        .build();
+                Runnable logTask = () -> factory.invokeLogBackMethod(logParameter);
+                executor.submit(logTask);
             }
             //异常降级处理
             if (factory.hasFailBackResponseMethod(responseClass)) {
@@ -369,15 +369,12 @@ public final class Invoker {
     /**
      * 构建HttpEntity
      *
-     * @param factory   缓存工厂
      * @param methodKey 方法key
      * @param args      方法参数
      * @return HttpEntity<?>
      * @throws FileException 文件异常
      */
-    private static HttpEntity<?> buildHttpEntity(ClientCacheFactory factory,
-                                                 String methodKey,
-                                                 List<Object> args) throws FileException {
+    private static HttpEntity<?> buildHttpEntity(String methodKey, List<Object> args) throws FileException {
         List<ParameterSort> fileParameterList = factory.getParameterSortByParameterType(methodKey, ParameterType.FILE);
         HttpHeaders httpHeaders = buildHttpHeaders(factory, methodKey, args, !fileParameterList.isEmpty());
         List<ParameterSort> requestBodyList = factory.getParameterSortByParameterType(methodKey, ParameterType.BODY);
@@ -389,16 +386,22 @@ public final class Invoker {
             for (ParameterSort sort : fileParameterList) {
                 multiValueMap.add(sort.getName(), buildByteArrayResource(args.get(sort.getIndex()), sort.getName()));
             }
-            final Map<String, Object> requestMap = new HashMap<>();
+            Map<String, Object> requestMap = new HashMap<>();
             //多个requestBody组装成一个map
             if (requestBodyList.size() > 1) {
-                requestBodyList.forEach(body -> requestMap.put(body.getName(), convert(args.get(body.getIndex()))));
+                for (ParameterSort body : requestBodyList) {
+                    requestMap.put(body.getName(), convert(args.get(body.getIndex())));
+                }
             } else if (!requestBodyList.isEmpty() && isNotBeanOrMap(requestBodyList.get(0).getClazz())) {
                 requestMap.put(requestBodyList.get(0).getName(), args.get(requestBodyList.get(0).getIndex()));
             } else if (!requestBodyList.isEmpty()) {
                 requestMap.putAll(toMap(args.get(requestBodyList.get(0).getIndex())));
             }
-            requestMap.forEach(multiValueMap::add);
+            if (!requestMap.isEmpty()) {
+                for (Map.Entry<String, Object> entry : requestMap.entrySet()) {
+                    multiValueMap.add(entry.getKey(), entry.getValue());
+                }
+            }
             httpEntity = new HttpEntity<>(multiValueMap, httpHeaders);
         } else if (requestBodyList.isEmpty()) {
             if (!restRequestBodyList.isEmpty()) {
@@ -408,8 +411,10 @@ public final class Invoker {
             }
         } else if (requestBodyList.size() > 1) {
             //多个requestBody组装成一个map
-            final Map<String, Object> requestMap = new HashMap<>();
-            requestBodyList.forEach(body -> requestMap.put(body.getName(), args.get(body.getIndex())));
+            Map<String, Object> requestMap = new HashMap<>();
+            for (ParameterSort body : requestBodyList) {
+                requestMap.put(body.getName(), args.get(body.getIndex()));
+            }
             httpEntity = new HttpEntity<>(requestMap, httpHeaders);
         } else if (isNotBeanOrMap(requestBodyList.get(0).getClazz())) {
             Map<String, Object> bodyMap = new HashMap<>();
@@ -444,8 +449,9 @@ public final class Invoker {
         }
         List<ParameterSort> headerParameterSortList = factory.getParameterSortByParameterType(methodKey, ParameterType.HEADER);
         if (!headerParameterSortList.isEmpty()) {
-            headerParameterSortList.forEach(sort ->
-                    httpHeaders.add(sort.getName(), convert(args.get(sort.getIndex()))));
+            for (ParameterSort sort : headerParameterSortList) {
+                httpHeaders.add(sort.getName(), convert(args.get(sort.getIndex())));
+            }
         }
         return httpHeaders;
     }
@@ -518,4 +524,5 @@ public final class Invoker {
         }
         throw new FileException("文件解析失败");
     }
+
 }

@@ -59,12 +59,12 @@ public class ParameterAnnotationLink<T, U extends Annotation> {
      * @return {@link ParameterAnnotationLink}
      */
     static ParameterAnnotationLink build(ParameterAnnotation... parameterAnnotations) {
-        ParameterAnnotationLink link = new ParameterAnnotationLink();
-        link.parameterAnnotation = parameterAnnotations[0];
+        ParameterAnnotationLink head = new ParameterAnnotationLink();
+        head.parameterAnnotation = parameterAnnotations[0];
         if (parameterAnnotations.length > 1) {
-            link.next = new ParameterAnnotationLink();
+            head.next = new ParameterAnnotationLink();
         }
-        ParameterAnnotationLink next = link.next;
+        ParameterAnnotationLink next = head.next;
         for (int i = 1; i < parameterAnnotations.length; i++) {
             next.parameterAnnotation = parameterAnnotations[i];
             if (i < parameterAnnotations.length - 1) {
@@ -72,6 +72,6 @@ public class ParameterAnnotationLink<T, U extends Annotation> {
                 next = next.next;
             }
         }
-        return link;
+        return head;
     }
 }

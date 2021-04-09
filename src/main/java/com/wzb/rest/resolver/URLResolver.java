@@ -37,21 +37,21 @@ public final class URLResolver {
      * @param methodKey 方法key
      * @param method    方法
      * @param prefixUrl url前缀
-     * @return {@link HttpMethod}
+     * @return {@link MethodUrl}
      */
-    public HttpMethod resolverUrl(ClientCacheFactory factory,
+    public MethodUrl resolverUrl(ClientCacheFactory factory,
                                   String methodKey,
                                   Method method,
                                   String prefixUrl) {
         if (factory.hasMethodUrl(methodKey)) {
-            return factory.getMethodUrl(methodKey).getHttpMethod();
+            return factory.getMethodUrl(methodKey);
         }
         MethodUrl methodUrl = factory.getRequestAnnotationLink().resolverRequestAnnotation(method, prefixUrl);
         if (Objects.isNull(methodUrl)) {
             methodUrl = new MethodUrl(prefixUrl, null);
         }
         factory.putIfAbsent(methodKey, methodUrl);
-        return methodUrl.getHttpMethod();
+        return methodUrl;
     }
 
 }

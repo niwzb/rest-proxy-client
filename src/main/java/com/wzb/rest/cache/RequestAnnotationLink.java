@@ -40,7 +40,7 @@ public class RequestAnnotationLink<T, U extends Annotation> {
                     httpMethod = HttpMethod.resolve(requestMethods[0].name());
                 }
             }
-            return new MethodUrl(append(mapping, new StringBuilder(prefixUrl)), httpMethod);
+            return new MethodUrl(append(prefixUrl, mapping), httpMethod);
         }
         return Objects.nonNull(next) ? next.resolverRequestAnnotation(method, prefixUrl) : null;
     }
@@ -52,12 +52,12 @@ public class RequestAnnotationLink<T, U extends Annotation> {
      * @return {@link RequestAnnotationLink}
      */
     public static RequestAnnotationLink build(RequestAnnotation... requestAnnotations) {
-        RequestAnnotationLink link = new RequestAnnotationLink<>();
-        link.requestAnnotation = requestAnnotations[0];
+        RequestAnnotationLink head = new RequestAnnotationLink<>();
+        head.requestAnnotation = requestAnnotations[0];
         if (requestAnnotations.length > 1) {
-            link.next = new RequestAnnotationLink<>();
+            head.next = new RequestAnnotationLink<>();
         }
-        RequestAnnotationLink next = link.next;
+        RequestAnnotationLink next = head.next;
         for (int i = 1; i < requestAnnotations.length; i++) {
             next.requestAnnotation = requestAnnotations[i];
             if (i < requestAnnotations.length - 1) {
@@ -65,21 +65,22 @@ public class RequestAnnotationLink<T, U extends Annotation> {
                 next = next.next;
             }
         }
-        return link;
+        return head;
     }
 
     /**
      * 拼接URL
      *
-     * @param mapping 请求类型注解值
-     * @param builder 建设者
+     * @param prefixUrl 前缀
+     * @param mapping   请求类型注解值
      * @return {@link String}
      */
-    private String append(String mapping, StringBuilder builder) {
+    private String append(String prefixUrl, String mapping) {
         if (null == mapping || mapping.isEmpty()) {
-            return builder.toString();
+            return prefixUrl;
         }
         mapping = mapping.replace("\\", "/");
+        StringBuilder builder = new StringBuilder(prefixUrl);
         if (builder.charAt(builder.length() - 1) != '/') {
             builder.append("/");
         }
