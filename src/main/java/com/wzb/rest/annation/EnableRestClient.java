@@ -44,4 +44,10 @@ public @interface EnableRestClient {
      * @return {@link Class<?>[]}
      */
     Class<?>[] configureClass() default {};
+
+    /**
+     * 扫描包路径
+     * @return path
+     */
+    String[] scanPackages() default {};
 }

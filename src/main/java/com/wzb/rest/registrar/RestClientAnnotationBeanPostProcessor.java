@@ -64,6 +64,8 @@ public class RestClientAnnotationBeanPostProcessor implements BeanDefinitionRegi
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 
         Set<String> resolvedPackagesToScan = resolvePackagesToScan(packagesToScan);
+        // 加入自定义扫描路径
+        extractedScanPackages(resolvedPackagesToScan);
 
         if (!CollectionUtils.isEmpty(resolvedPackagesToScan)) {
             registerRestClientBeans(resolvedPackagesToScan, registry);
@@ -73,6 +75,23 @@ public class RestClientAnnotationBeanPostProcessor implements BeanDefinitionRegi
             }
         }
 
+    }
+
+    /**
+     * 扩展扫描路径
+     * @param resolvedPackagesToScan resolvedPackagesToScan
+     */
+    private void extractedScanPackages(Set<String> resolvedPackagesToScan) {
+        // 自定义扫描路径
+        String[] restScanPackages = (String[]) restAttributes.get("scanPackages");
+        if (restScanPackages.length > 0) {
+            for (String packageToScan : restScanPackages) {
+                if (StringUtils.hasText(packageToScan)) {
+                    String resolvedPackageToScan = environment.resolvePlaceholders(packageToScan.trim());
+                    resolvedPackagesToScan.add(resolvedPackageToScan);
+                }
+            }
+        }
     }
 
     /**
