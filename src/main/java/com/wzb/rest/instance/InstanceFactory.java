@@ -81,7 +81,7 @@ public final class InstanceFactory {
         }
         int nameRandInt = new Random().nextInt(packageRandInt);
         //实例类名
-        String instanceClassName = String.format(packageStr.concat(".javassist%d.RestClientProxy%d"), packageRandInt, nameRandInt);
+        String instanceClassName = String.format(packageStr.concat(".javassist%d.$RestClientProxy%d"), packageRandInt, nameRandInt);
         //实例实现方法定义
         List<String> methodDefinitionList = methodList.stream()
                 .map(method -> definitionMethod(interfaceClass, method)).collect(Collectors.toList());
