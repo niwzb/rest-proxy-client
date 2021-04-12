@@ -8,16 +8,19 @@ import org.springframework.http.HttpMethod;
 public class MethodUrl {
 
     private String url;
+    private String[] produces;
     private HttpMethod httpMethod;
 
     /**
      * MethodUrl
      *
      * @param url        url
+     * @param produces   produces
      * @param httpMethod httpMethod
      */
-    public MethodUrl(String url, HttpMethod httpMethod) {
+    public MethodUrl(String url, String[] produces, HttpMethod httpMethod) {
         this.url = url;
+        this.produces = produces;
         this.httpMethod = httpMethod;
     }
 
@@ -37,5 +40,13 @@ public class MethodUrl {
      */
     public HttpMethod getHttpMethod() {
         return httpMethod;
+    }
+
+    /**
+     * 获取请求配置
+     * @return produces
+     */
+    public String[] getProduces() {
+        return produces;
     }
 }

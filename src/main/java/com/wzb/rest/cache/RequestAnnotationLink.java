@@ -40,7 +40,8 @@ public class RequestAnnotationLink<T, U extends Annotation> {
                     httpMethod = HttpMethod.resolve(requestMethods[0].name());
                 }
             }
-            return new MethodUrl(append(prefixUrl, mapping), httpMethod);
+            String[] produces = requestAnnotation.getProducesFunction().apply(annotation);
+            return new MethodUrl(append(prefixUrl , mapping), produces, httpMethod);
         }
         return Objects.nonNull(next) ? next.resolverRequestAnnotation(method, prefixUrl) : null;
     }

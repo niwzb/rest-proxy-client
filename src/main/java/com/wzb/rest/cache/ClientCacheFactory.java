@@ -588,27 +588,32 @@ public final class ClientCacheFactory {
                 RequestAnnotation.builder(PostMapping.class)
                         .valueFunction(PostMapping::value)
                         .pathFunction(PostMapping::path)
+                        .producesFunction(PostMapping::produces)
                         .defaultHttpMethod(HttpMethod.POST)
                         .build(),
                 RequestAnnotation.builder(GetMapping.class)
                         .valueFunction(GetMapping::value)
                         .pathFunction(GetMapping::path)
+                        .producesFunction(GetMapping::produces)
                         .defaultHttpMethod(HttpMethod.GET)
                         .build(),
                 RequestAnnotation.builder(RequestMapping.class)
                         .valueFunction(RequestMapping::value)
                         .pathFunction(RequestMapping::path)
+                        .producesFunction(RequestMapping::produces)
                         .httpMethodFunction(RequestMapping::method)
                         .defaultHttpMethod(HttpMethod.GET)
                         .build(),
                 RequestAnnotation.builder(DeleteMapping.class)
                         .valueFunction(DeleteMapping::value)
                         .pathFunction(DeleteMapping::path)
+                        .producesFunction(DeleteMapping::produces)
                         .defaultHttpMethod(HttpMethod.DELETE)
                         .build(),
                 RequestAnnotation.builder(PutMapping.class)
                         .valueFunction(PutMapping::value)
                         .pathFunction(PutMapping::path)
+                        .producesFunction(PutMapping::produces)
                         .defaultHttpMethod(HttpMethod.PUT)
                         .build()
         );

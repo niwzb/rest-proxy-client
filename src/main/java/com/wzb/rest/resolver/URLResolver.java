@@ -48,7 +48,7 @@ public final class URLResolver {
         }
         MethodUrl methodUrl = factory.getRequestAnnotationLink().resolverRequestAnnotation(method, prefixUrl);
         if (Objects.isNull(methodUrl)) {
-            methodUrl = new MethodUrl(prefixUrl, null);
+            methodUrl = new MethodUrl(prefixUrl, null, null);
         }
         factory.putIfAbsent(methodKey, methodUrl);
         return methodUrl;

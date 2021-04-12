@@ -1,13 +1,10 @@
 package com.wzb.rest.invoke;
 
 import com.alibaba.fastjson.JSON;
-import com.wzb.rest.cache.ClientCacheFactory;
-import com.wzb.rest.cache.DynamicParameter;
-import com.wzb.rest.cache.ParameterSort;
+import com.wzb.rest.cache.*;
 import com.wzb.rest.client.RestTemplateClient;
 import com.wzb.rest.exception.FileException;
 import com.wzb.rest.log.RestClientLog;
-import com.wzb.rest.cache.ParameterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -439,10 +436,13 @@ public final class Invoker {
     private static HttpHeaders buildHttpHeaders(String methodKey,
                                                 List<Object> args,
                                                 boolean hasFile) {
+        MethodUrl methodUrl = factory.getMethodUrl(methodKey);
         HttpHeaders httpHeaders = new HttpHeaders();
         if (hasFile) {
             //文件流
             httpHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
+        } else if (methodUrl.getProduces().length > 0 ){
+            httpHeaders.set("Content-Type", methodUrl.getProduces()[0]);
         } else {
             httpHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
         }

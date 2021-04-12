@@ -16,6 +16,7 @@ public class RequestAnnotation<T extends Annotation> {
     private Class<T> annotationClass;
     private Function<T, String[]> valueFunction;
     private Function<T, String[]> pathFunction;
+    private Function<T, String[]> producesFunction;
     private Function<T, RequestMethod[]> httpMethodFunction;
     private HttpMethod defaultHttpMethod;
 
@@ -39,6 +40,10 @@ public class RequestAnnotation<T extends Annotation> {
         return defaultHttpMethod;
     }
 
+    public Function<T, String[]> getProducesFunction() {
+        return producesFunction;
+    }
+
     public static <T extends Annotation> Builder<T> builder(Class<T> clazz) {
         return new Builder<T>().annotationClass(clazz);
     }
@@ -53,6 +58,7 @@ public class RequestAnnotation<T extends Annotation> {
         private Class<T> annotationClass;
         private Function<T, String[]> valueFunction;
         private Function<T, String[]> pathFunction;
+        private Function<T, String[]> producesFunction;
         private Function<T, RequestMethod[]> httpMethodFunction;
         private HttpMethod defaultHttpMethod;
 
@@ -68,6 +74,11 @@ public class RequestAnnotation<T extends Annotation> {
 
         public Builder<T> pathFunction(Function<T, String[]> pathFunction) {
             this.pathFunction = pathFunction;
+            return this;
+        }
+
+        public Builder<T> producesFunction(Function<T, String[]> producesFunction) {
+            this.producesFunction = producesFunction;
             return this;
         }
 
@@ -93,6 +104,7 @@ public class RequestAnnotation<T extends Annotation> {
             requestAnnotation.valueFunction = this.valueFunction;
             requestAnnotation.pathFunction = this.pathFunction;
             requestAnnotation.httpMethodFunction = this.httpMethodFunction;
+            requestAnnotation.producesFunction = this.producesFunction;
             return requestAnnotation;
         }
     }
