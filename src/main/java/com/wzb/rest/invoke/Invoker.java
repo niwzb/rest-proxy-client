@@ -259,26 +259,27 @@ public final class Invoker {
             return parameterMap;
         }
         if (parameter instanceof Map) {
-            ((Map<?, ?>) parameter).forEach((k, v) ->
-                    parameterMap.put(String.valueOf(k), convert(v)));
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) parameterMap).entrySet()) {
+                parameterMap.put(String.valueOf(entry.getKey()), convert(entry.getValue()));
+            }
         } else {
             Method[] methods = parameter.getClass().getMethods();
-            //过滤getter方法
-            Stream.of(methods).filter(method ->
-                    method.getName().startsWith(GETTER)
-                            && !method.getReturnType().equals(Void.class)
-                            && method.getParameterCount() == 0
-            ).forEach(method -> {
-                String propertyName = method.getName().substring(GETTER.length());
-                String first = String.valueOf(propertyName.charAt(0)).toLowerCase();
-                propertyName = first.concat(propertyName.substring(1));
-                try {
-                    Object propertyValue = method.invoke(parameter);
-                    parameterMap.put(propertyName, convert(propertyValue));
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    logger.warn(String.format("invoke method's %s error", method.getName()), e);
+            for (Method method : methods) {
+                //过滤getter方法
+                if (method.getName().startsWith(GETTER)
+                        && !method.getReturnType().equals(Void.class)
+                        && method.getParameterCount() == 0) {
+                    String propertyName = method.getName().substring(GETTER.length());
+                    String first = String.valueOf(propertyName.charAt(0)).toLowerCase();
+                    propertyName = first.concat(propertyName.substring(1));
+                    try {
+                        Object propertyValue = method.invoke(parameter);
+                        parameterMap.put(propertyName, convert(propertyValue));
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        logger.warn(String.format("invoke method's %s error", method.getName()), e);
+                    }
                 }
-            });
+            }
         }
         return parameterMap;
     }
@@ -376,7 +377,7 @@ public final class Invoker {
      */
     private static HttpEntity<?> buildHttpEntity(String methodKey, List<Object> args) throws FileException {
         List<ParameterSort> fileParameterList = factory.getParameterSortByParameterType(methodKey, ParameterType.FILE);
-        HttpHeaders httpHeaders = buildHttpHeaders(factory, methodKey, args, !fileParameterList.isEmpty());
+        HttpHeaders httpHeaders = buildHttpHeaders(methodKey, args, !fileParameterList.isEmpty());
         List<ParameterSort> requestBodyList = factory.getParameterSortByParameterType(methodKey, ParameterType.BODY);
         List<ParameterSort> restRequestBodyList = factory.getParameterSortByParameterType(methodKey, ParameterType.REST);
         HttpEntity<?> httpEntity;
@@ -430,14 +431,12 @@ public final class Invoker {
     /**
      * 生成http标头
      *
-     * @param factory   缓存工厂
      * @param methodKey 方法key
      * @param args      方法参数
      * @param hasFile   有文件
      * @return {@link HttpHeaders}
      */
-    private static HttpHeaders buildHttpHeaders(ClientCacheFactory factory,
-                                                String methodKey,
+    private static HttpHeaders buildHttpHeaders(String methodKey,
                                                 List<Object> args,
                                                 boolean hasFile) {
         HttpHeaders httpHeaders = new HttpHeaders();

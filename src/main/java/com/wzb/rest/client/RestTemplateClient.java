@@ -140,6 +140,7 @@ public class RestTemplateClient {
             Set<Class<?>> classSet = interceptors.stream().map(ClientHttpRequestInterceptor::getClass).collect(toSet());
             this.interceptorList.removeIf(converter -> classSet.contains(converter.getClass()));
             this.interceptorList.addAll(interceptors);
+            restTemplate.setInterceptors(interceptorList);
         }
     }
 
