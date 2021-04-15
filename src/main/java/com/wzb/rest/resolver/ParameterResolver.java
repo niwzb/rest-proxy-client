@@ -20,9 +20,9 @@ import java.util.stream.Stream;
  */
 public final class ParameterResolver {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(ParameterResolver.class);
 
-    private static ParameterResolver resolver = new ParameterResolver();
+    private static final ParameterResolver resolver = new ParameterResolver();
 
     /**
      * init
@@ -52,51 +52,33 @@ public final class ParameterResolver {
                                   String methodKey,
                                   Annotation[][] annotations,
                                   Parameter[] parameters) {
-        if (!factory.hasParameterSort(methodKey)) {
-            ParameterSort requestBody;
-            ParameterAnnotationLink link = factory.getParameterAnnotationLink();
-            Parameter parameter;
-            for (int i = 0; i < annotations.length; i++) {
-                parameter = parameters[i];
-                //如果注解没有指定则默认取方法参数名称
-                String parameterName = parameter.getName();
-                Annotation[] paramAnn = annotations[i];
-                //参数没有注解 默认放请求体
-                if (paramAnn.length == 0) {
-                    requestBody = ParameterSort.builder()
-                            .index(i)
-                            .name(parameterName)
-                            .type(ParameterType.BODY)
-                            .clazz(parameter.getType())
-                            .build();
-                    factory.putIfAbsent(methodKey, requestBody);
-                    continue;
-                }
-                for (Annotation annotation : paramAnn) {
-                    ParameterSort sort = link.resolverAnnotation(annotation, i, parameterName, parameter.getType());
-                    if (null != sort) {
-                        factory.putIfAbsent(methodKey, sort);
-                        factory.putIfAbsent(methodKey, sort.getPath());
-                        logger.debug("found annotation's @{} at method parameter index {}", sort.getAnnotationName(), i);
-                        break;
-                    }
-                }
+        ParameterSort requestBody;
+        ParameterAnnotationLink link = factory.getParameterAnnotationLink();
+        Parameter parameter;
+        for (int i = 0; i < annotations.length; i++) {
+            parameter = parameters[i];
+            //如果注解没有指定则默认取方法参数名称
+            String parameterName = parameter.getName();
+            Annotation[] paramAnn = annotations[i];
+            //参数没有注解 默认放请求体
+            if (paramAnn.length == 0) {
+                requestBody = ParameterSort.builder()
+                        .index(i)
+                        .name(parameterName)
+                        .type(ParameterType.BODY)
+                        .clazz(parameter.getType())
+                        .build();
+                factory.putIfAbsent(methodKey, requestBody);
+                continue;
             }
-        }
-    }
-
-    /**
-     * 解析程序参数类型
-     *
-     * @param factory   缓存工厂
-     * @param methodKey 方法键
-     */
-    public void resolverParameterType(ClientCacheFactory factory, String methodKey) {
-        List<ParameterSort> parameterSortList = factory.getParameterSort(methodKey);
-        if (null != parameterSortList && !parameterSortList.isEmpty()) {
-            for (ParameterType parameterType : ParameterType.values()) {
-                factory.putIfAbsent(methodKey, parameterType, parameterSortList.stream()
-                        .filter(sort -> sort.getType() == parameterType).collect(Collectors.toList()));
+            for (Annotation annotation : paramAnn) {
+                ParameterSort sort = link.resolverAnnotation(annotation, i, parameterName, parameter.getType());
+                if (null != sort) {
+                    factory.putIfAbsent(methodKey, sort);
+                    factory.putIfAbsent(methodKey, sort.getPath());
+                    logger.debug("found annotation's @{} at method parameter index {}", sort.getAnnotationName(), i);
+                    break;
+                }
             }
         }
     }

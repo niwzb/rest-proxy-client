@@ -108,16 +108,14 @@ public final class Invoker {
     private static String generateURL(String methodKey, List<Object> args) {
         //动态参数
         List<DynamicParameter> dynamicParameterList = factory.getDynamicParameter(methodKey);
-        if (!factory.hasParameterSort(methodKey) || factory.getParameterSort(methodKey).isEmpty()) {
-            //处理URL动态参数
-            return parameterReplacePlaceholder(dynamicParameterList);
+        //处理URL动态参数
+        String newUrl = parameterReplacePlaceholder(methodKey, dynamicParameterList, args);
+        //没有get请求的参数
+        if (!factory.hasGetParameterSort(methodKey)) {
+            return newUrl;
         }
         //param参数
         List<ParameterSort> parameterSortList = factory.getParameterSortByParameterType(methodKey, ParameterType.PARAM);
-        //url动态参数
-        List<ParameterSort> pathParameterSortList = factory.getParameterSortByParameterType(methodKey, ParameterType.PATH);
-        //处理URL动态参数
-        String newUrl = parameterReplacePlaceholder(dynamicParameterList, pathParameterSortList, args);
         //param参数拼接
         StringBuilder parameter = new StringBuilder();
         //参数拼接到url里
@@ -151,34 +149,20 @@ public final class Invoker {
     /**
      * 参数替换占位符
      *
+     * @param methodKey            方法键
      * @param dynamicParameterList 动态参数表
-     * @return {@link String}
-     */
-    private static String parameterReplacePlaceholder(List<DynamicParameter> dynamicParameterList) {
-        return parameterReplacePlaceholder(dynamicParameterList, null, null);
-    }
-
-    /**
-     * 参数替换占位符
-     *
-     * @param dynamicParameterList 动态参数表
-     * @param parameterSortList    参数排序列表
      * @param args                 方法参数
      * @return {@link String}
      */
-    private static String parameterReplacePlaceholder(List<DynamicParameter> dynamicParameterList,
-                                                      List<ParameterSort> parameterSortList,
+    private static String parameterReplacePlaceholder(String methodKey,
+                                                      List<DynamicParameter> dynamicParameterList,
                                                       List<Object> args) {
-        if (dynamicParameterList.isEmpty()) {
-            return "";
-        }
         StringBuilder url = new StringBuilder();
         for (DynamicParameter dynamicParameter : dynamicParameterList) {
             url.append(dynamicParameter.getSubURL());
             String dynamicParameterName = dynamicParameter.getName();
             if (null != dynamicParameterName) {
-                String dynamicParameterValue = findDynamicParameterValue(dynamicParameterName,
-                        parameterSortList, args);
+                String dynamicParameterValue = findDynamicParameterValue(methodKey, dynamicParameterName, args);
                 url.append(dynamicParameterValue);
             }
         }
@@ -188,26 +172,19 @@ public final class Invoker {
     /**
      * 找到动态参数值
      *
+     * @param methodKey            方法键
      * @param dynamicParameterName 动态参数名称
-     * @param parameterSortList    参数排序列表
      * @param args                 方法参数
      * @return {@link String}
      */
-    private static String findDynamicParameterValue(String dynamicParameterName,
-                                                    List<ParameterSort> parameterSortList,
+    private static String findDynamicParameterValue(String methodKey,
+                                                    String dynamicParameterName,
                                                     List<Object> args) {
-        if (null == parameterSortList || parameterSortList.isEmpty()) {
-            return "";
+        Integer index = factory.getPathParameterIndex(methodKey, dynamicParameterName);
+        if (null != index) {
+            return convert(args.get(index), "");
         }
-        Object value = null;
-        //参数名相同
-        for (ParameterSort sort : parameterSortList) {
-            if (Objects.equals(sort.getName(), dynamicParameterName)) {
-                value = args.get(sort.getIndex());
-                break;
-            }
-        }
-        return convert(value, "");
+        return "";
     }
 
     /**

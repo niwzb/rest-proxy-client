@@ -63,8 +63,6 @@ public final class MethodResolver {
             dynamicParameterResolver.resolverDynamicParameter(factory, methodKey, methodUrl.getUrl());
             //解析返回类型
             responseTypeResolver.resolverResponseType(factory, methodKey, method.getGenericReturnType());
-            //接口方法参数分类
-            parameterResolver.resolverParameterType(factory, methodKey);
         }
     }
 

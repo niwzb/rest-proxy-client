@@ -13,13 +13,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,8 +24,6 @@ public final class ClientCacheFactory {
     private static final ClientCacheFactory factory = new ClientCacheFactory();
 
     private static final Map<String, MethodUrl> methodUrlMap = new ConcurrentHashMap<>();
-
-    private static final Map<String, List<ParameterSort>> parameterSortMap = new ConcurrentHashMap<>();
 
     private static final Map<String, List<Class<?>>> responseClassMap = new ConcurrentHashMap<>();
 
@@ -50,6 +42,8 @@ public final class ClientCacheFactory {
     private RestTemplateClient restTemplateClient;
 
     private static final Map<String, EnumMap<ParameterType, List<ParameterSort>>> parameterSortTypeMap = new ConcurrentHashMap<>();
+
+    private static final Map<String, Map<String, Integer>> pathParameterMap = new ConcurrentHashMap<>();
 
     private static final Map<Class<?>, Object> nullResponseMap = new ConcurrentHashMap<>();
 
@@ -180,25 +174,15 @@ public final class ClientCacheFactory {
     }
 
     /**
-     * 获取参数排序
-     *
+     * 具有get请求参数列表
      * @param methodKey 方法键
-     * @return {@link List<ParameterSort>}
+     * @return 结果
      */
-    public List<ParameterSort> getParameterSort(String methodKey) {
-        return parameterSortMap.get(methodKey);
+    public boolean hasGetParameterSort(String methodKey) {
+        return parameterSortTypeMap.containsKey(methodKey)
+                && parameterSortTypeMap.get(methodKey).containsKey(ParameterType.PARAM)
+                && !parameterSortTypeMap.get(methodKey).get(ParameterType.PARAM).isEmpty();
     }
-
-    /**
-     * 具有参数排序
-     *
-     * @param methodKey 方法键
-     * @return boolean
-     */
-    public boolean hasParameterSort(String methodKey) {
-        return parameterSortMap.containsKey(methodKey);
-    }
-
 
     /**
      * 缺省时装填
@@ -207,23 +191,14 @@ public final class ClientCacheFactory {
      * @param parameterSort 参数排序
      */
     public void putIfAbsent(String methodKey, ParameterSort parameterSort) {
-        parameterSortMap.putIfAbsent(methodKey, new LinkedList<>());
-        parameterSortMap.get(methodKey).add(parameterSort);
-    }
-
-    /**
-     * 缺省时装填
-     *
-     * @param methodKey         方法键
-     * @param parameterType     参数类型
-     * @param parameterSortList 参数排序列表
-     */
-    public void putIfAbsent(String methodKey,
-                            ParameterType parameterType,
-                            List<ParameterSort> parameterSortList) {
-        parameterSortTypeMap.putIfAbsent(methodKey, new EnumMap<>(ParameterType.class));
-        parameterSortTypeMap.get(methodKey).putIfAbsent(parameterType, new ArrayList<>());
-        parameterSortTypeMap.get(methodKey).get(parameterType).addAll(parameterSortList);
+        if (parameterSort.getType() == ParameterType.PATH) {
+            pathParameterMap.putIfAbsent(methodKey, new HashMap<>());
+            pathParameterMap.get(methodKey).put(parameterSort.getName(), parameterSort.getIndex());
+        } else {
+            parameterSortTypeMap.putIfAbsent(methodKey, new EnumMap<>(ParameterType.class));
+            parameterSortTypeMap.get(methodKey).putIfAbsent(parameterSort.getType(), new ArrayList<>());
+            parameterSortTypeMap.get(methodKey).get(parameterSort.getType()).add(parameterSort);
+        }
     }
 
     /**
@@ -437,6 +412,19 @@ public final class ClientCacheFactory {
      */
     public boolean hasNullResponse(Class<?> clazz) {
         return nullResponseMap.containsKey(clazz);
+    }
+
+    /**
+     * 获取URL动态参数位置
+     * @param methodKey 方法键
+     * @param parameterName 参数名称
+     * @return 位置索引
+     */
+    public Integer getPathParameterIndex(String methodKey, String parameterName) {
+        if (pathParameterMap.containsKey(methodKey)) {
+            return pathParameterMap.get(methodKey).get(parameterName);
+        }
+        return null;
     }
 
     /**
