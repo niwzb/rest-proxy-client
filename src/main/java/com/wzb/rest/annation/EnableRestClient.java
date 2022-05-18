@@ -36,7 +36,7 @@ public @interface EnableRestClient {
      *     {@link RestClientProxy#MODE_JAVASSIST}
      * @return mode
      */
-    int mode() default RestClientProxy.MODE_PROXY;
+    int mode() default RestClientProxy.MODE_JAVASSIST;
 
     /**
      * 配置类<br>

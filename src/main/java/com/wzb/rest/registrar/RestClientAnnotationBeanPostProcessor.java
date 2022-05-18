@@ -193,7 +193,7 @@ public class RestClientAnnotationBeanPostProcessor implements BeanDefinitionRegi
 
         //bean持有信息
         BeanDefinitionHolder holder = new BeanDefinitionHolder(restClientBeanDefinition, className,
-                new String[]{UUID.randomUUID().toString() + "@RestClient"});
+                new String[]{UUID.randomUUID() + "@RestClient"});
 
         BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
     }

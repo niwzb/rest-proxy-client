@@ -9,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 
 import javax.annotation.PostConstruct;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,12 +39,12 @@ public class MessageConvertConfigure {
         SerializeConfig serializeConfig = SerializeConfig.globalInstance;
         fastJsonConfig.setSerializeConfig(serializeConfig);
         fastJsonConfig.setSerializerFeatures(serializerFeatures);
-        fastJsonConfig.setCharset(Charset.forName("UTF-8"));
+        fastJsonConfig.setCharset(StandardCharsets.UTF_8);
         fastConverter.setFastJsonConfig(fastJsonConfig);
         List<MediaType> mediaTypes = new ArrayList<>();
         mediaTypes.add(MediaType.APPLICATION_JSON);
         mediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
-        mediaTypes.add(new MediaType("application", "*+json", Charset.forName("UTF-8")));
+        mediaTypes.add(new MediaType("application", "*+json", StandardCharsets.UTF_8));
         fastConverter.setSupportedMediaTypes(mediaTypes);
         return fastConverter;
     }
@@ -65,13 +65,13 @@ public class MessageConvertConfigure {
         SerializeConfig serializeConfig = SerializeConfig.globalInstance;
         fastJsonConfig.setSerializeConfig(serializeConfig);
         fastJsonConfig.setSerializerFeatures(serializerFeatures);
-        fastJsonConfig.setCharset(Charset.forName("UTF-8"));
+        fastJsonConfig.setCharset(StandardCharsets.UTF_8);
         fastJsonConfig.setDateFormat("yyyy-MM-dd HH:mm:ss");
         fastConverter.setFastJsonConfig(fastJsonConfig);
         List<MediaType> mediaTypes = new ArrayList<>();
         mediaTypes.add(MediaType.APPLICATION_JSON);
         mediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
-        mediaTypes.add(new MediaType("application", "*+json", Charset.forName("UTF-8")));
+        mediaTypes.add(new MediaType("application", "*+json", StandardCharsets.UTF_8));
         fastConverter.setSupportedMediaTypes(mediaTypes);
         return fastConverter;
     }

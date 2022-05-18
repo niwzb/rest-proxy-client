@@ -270,7 +270,7 @@ public class RestClientProxy implements FactoryBean<Object>, InitializingBean, A
             }
             urlBuilder.append(this.url);
         }
-        if (urlBuilder.charAt(urlBuilder.length() - 1) != '/') {
+        if (urlBuilder.length() > 0 && urlBuilder.charAt(urlBuilder.length() - 1) != '/') {
             urlBuilder.append("/");
         }
         if (path.startsWith("/")) {

@@ -9,6 +9,7 @@ import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.CtNewConstructor;
 import javassist.LoaderClassPath;
+import javassist.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,6 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -29,9 +29,9 @@ import java.util.stream.Stream;
  */
 public final class InstanceFactory {
 
-    private static Logger logger = LoggerFactory.getLogger(InstanceFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(InstanceFactory.class);
 
-    private static ClientCacheFactory factory = ClientCacheFactory.getInstance();
+    private static final ClientCacheFactory factory = ClientCacheFactory.getInstance();
 
     /**
      * init
@@ -81,7 +81,7 @@ public final class InstanceFactory {
         }
         int nameRandInt = new Random().nextInt(packageRandInt);
         //实例类名
-        String instanceClassName = String.format(packageStr.concat(".javassist%d.$RestClientProxy%d"), packageRandInt, nameRandInt);
+        String instanceClassName = String.format(packageStr.concat(".RestClientProxy%d"), packageRandInt, nameRandInt);
         //实例实现方法定义
         List<String> methodDefinitionList = methodList.stream()
                 .map(method -> definitionMethod(interfaceClass, method)).collect(Collectors.toList());
@@ -124,24 +124,23 @@ public final class InstanceFactory {
         }
         methodDefinition.append(method.getName()).append("(");
         methodDefinition.append(definitionParameter(method.getParameters())).append(") { ");
-        methodDefinition.append(String.class.getName()).append(" methodKey = ");
+        methodDefinition.append("java.lang.String methodKey = ");
         methodDefinition.append("\"").append(methodKey).append("\"; ");
-        methodDefinition.append(Class.class.getName()).append(" returnType = ");
+        methodDefinition.append("java.lang.Class returnType = ");
         methodDefinition.append(method.getReturnType().getName()).append(".class; ");
-        methodDefinition.append(List.class.getName()).append(" args = ");
+        methodDefinition.append("java.util.List args = ");
         if (0 == method.getParameterCount()) {
             methodDefinition.append("null; ");
         } else {
-            methodDefinition.append("new ").append(LinkedList.class.getName()).append("(); ");
+            methodDefinition.append("new java.util.LinkedList(); ");
             for (int i = 0; i < method.getParameterCount(); i++) {
-                methodDefinition.append("args.add($").append(i + 1).append("); ");
+                methodDefinition.append("args.add(").append(method.getParameters()[i].getName()).append("); ");
             }
         }
         if (returnType.equals(Void.class)) {
-            methodDefinition.append(Invoker.class.getName()).append(".invoke(methodKey, args); ");
+            methodDefinition.append("com.wzb.rest.invoke.Invoker.invoke(methodKey, args); ");
         } else {
-            methodDefinition.append("return ").append(Invoker.class.getName())
-                    .append(".invoke(methodKey, args, returnType); ");
+            methodDefinition.append("return (").append(returnType.getName()).append(") com.wzb.rest.invoke.Invoker.invoke(methodKey, args, returnType); ");
         }
         methodDefinition.append("} ");
         return methodDefinition.toString();
@@ -200,13 +199,13 @@ public final class InstanceFactory {
                                     Class<?> interfaceClass) {
         try {
             CtClass mCtc = classPool.makeClass(className);
+            mCtc.addInterface(classPool.get(interfaceClass.getName()));
             for (String method : methodList) {
                 mCtc.addMethod(CtMethod.make(method, mCtc));
             }
-            mCtc.addInterface(classPool.makeInterface(interfaceClass.getName()));
             mCtc.addConstructor(CtNewConstructor.defaultConstructor(mCtc));
             return mCtc.toClass(classLoader, pd);
-        } catch (CannotCompileException | RuntimeException ex) {
+        } catch (CannotCompileException | NotFoundException | RuntimeException ex) {
             logger.warn(">>>>>>>>>>>>>代理类实现接口异常", ex);
         }
         return null;

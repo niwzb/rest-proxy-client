@@ -12,7 +12,7 @@
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
         <spring-test.version>4.3.14.RELEASE</spring-test.version>
         <slf4j-log4j12.version>1.7.25</slf4j-log4j12.version>
-        <javassist.version>3.20.0-GA</javassist.version>
+        <javassist.version>3.25.0-GA</javassist.version>
         <fastjson.version>1.2.76</fastjson.version>
         <build.mvn.version>3.5.1</build.mvn.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
